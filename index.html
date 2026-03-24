@@ -24,9 +24,23 @@
             flex-direction: column;
         }
 
-        /* Fixed Scroll Area for Tables - Adjusted for exactly 5 rows */
+        /* Fixed Area for Tables */
         .uniform-box-table {
-            height: 300px; 
+            height: 300px; /* Locked height for exactly 5 rows + header */
+        }
+
+        /* CUSTOM SCROLLBAR STYLING */
+        .scroll-area::-webkit-scrollbar {
+            width: 10px;
+            background-color: #f1f1f1;
+            border-left: 1px solid black;
+        }
+        .scroll-area::-webkit-scrollbar-thumb {
+            background-color: #0d5a6a;
+            border: 1px solid black;
+        }
+        .scroll-area::-webkit-scrollbar-thumb:hover {
+            background-color: #08434f;
         }
 
         .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; flex: 1; }
@@ -60,11 +74,11 @@
         .w-desc { width: auto; } 
         .w-actions-sync { width: 185px; } 
 
-        .scroll-area { flex: 1; overflow-y: auto; width: 100%; background: white; }
+        /* Forced scroll to keep bar visible */
+        .scroll-area { flex: 1; overflow-y: scroll; width: 100%; background: white; border-top: 1px solid black;}
         .section-header { 
             background-color: #0d5a6a; color: white; font-weight: 800; 
             text-transform: uppercase; font-size: 0.85rem; padding: 10px 16px; 
-            border-bottom: 2px solid black; 
         }
         
         .btn-action { font-weight: 800; font-size: 9px; padding: 3px 7px; border: 1px solid #000; text-transform: uppercase; border-radius: 2px; cursor: pointer; margin: 0 2px; }
@@ -279,7 +293,7 @@
                     <td class="text-xs text-center text-green-700 font-bold">${data.dateReturned}</td>
                 </tr>`;
             });
-            // Changed from 3 to 5 rows fixed
+            
             fillEmptyRows(activeBody, 5, 7); 
             fillEmptyRows(returnedBody, 5, 7);
         }
