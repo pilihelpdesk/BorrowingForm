@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Borrowing Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            margin: 0; padding: 0; min-height: 100vh;
+            background-color: #008631;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- FORM STYLING --- */
+        .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; width: 100%; }
+        .label-cell { 
+            width: 20%; background-color: #f8fafc; padding: 8px 12px; 
+            font-weight: 800; border-right: 1px solid #000; 
+            display: flex; align-items: center; font-size: 0.8rem; 
+            text-transform: uppercase; color: #1e293b;
+            font-style: italic;
+        }
+        .input-cell { 
+            width: 80%; padding: 8px; outline: none; 
+            background-color: #ffffff; text-align: left; 
+            font-size: 0.9rem; color: #000; border: none; 
+            font-weight: 500;
+        }
+        .input-cell::placeholder { font-style: italic; opacity: 0.7; }
+
+        /* --- TABLE STYLING --- */
+        .thin-table { border-collapse: collapse; width: 100%; border: 1px solid #000; table-layout: fixed; }
+        .thin-table thead th { 
+            position: sticky; top: 0; z-index: 20;
+            background-color: #f1f5f9; border: 1px solid #000;
+            padding: 10px 4px; font-weight: 800; font-size: 0.75rem;
+            text-transform: uppercase; box-shadow: inset 0 -1px 0 #000;
+            text-align: center;
+        }
+        .thin-table td { 
+            border: 1px solid #000; padding: 4px 8px; 
+            font-size: 0.8rem; font-weight: 600; height: 40px; 
+            color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: normal;
+        }
+        
+        /* Matching Heavy Shadow Utility */
+        .heavy-box-shadow {
+            border: 2px solid black;
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+        }
+
+        .scroll-box { background: white; border-top: 1px solid #000; height: 250px; overflow-y: scroll; width: 100%; }
+        
+        .section-header { 
+            background-color: #0d5a6a; color: white; 
+            font-weight: 800; text-transform: uppercase; 
+            font-size: 0.8rem; padding: 10px 14px; 
+            border-bottom: 2px solid black;
+        }
+        
+        .btn-action { font-weight: 800; font-size: 9px; padding: 4px 5px; border: 1px solid #000; text-transform: uppercase; border-radius: 2px; display: inline-block; cursor: pointer;}
+        .btn-return { background-color: #22c55e; color: white; }
+        .btn-edit { background-color: #3b82f6; color: white; }
+        .btn-del { background-color: #ef4444; color: white; }
+
+        .num-cell { text-align: center; background-color: #f8fafc; font-weight: 800; color: #64748b; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .custom-alert-box {
+            background-color: #fff; width: 380px; padding: 32px 24px;
+            border: 4px solid black; position: relative;
+            box-shadow: 14px 14px 0px 0px rgba(0,0,0,1);
+            text-align: center;
+        }
+        .modal-title-red { color: #b91c1c; font-size: 1.8rem; font-weight: 900; text-transform: uppercase; margin-bottom: 12px; }
+        .modal-body-text { color: #000; font-size: 1.2rem; font-weight: 800; margin-bottom: 24px; }
+        .got-it-btn { background-color: black; color: white; width: 100%; padding: 14px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        
+        .confirm-btn-group { display: flex; gap: 10px; }
+        .btn-confirm-yes { background-color: #22c55e; color: white; border: 3px solid black; flex: 1; padding: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        .btn-confirm-no { background-color: #ef4444; color: white; border: 3px solid black; flex: 1; padding: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+
+        .hidden { display: none !important; }
+
+        .w-num { width: 45px; }
+        .w-date { width: 160px; }
+        .w-name { width: 180px; }
+        .w-dept { width: 140px; }
+        .w-item { width: 140px; }
+        .w-actions { width: 160px; }
+        .w-desc { width: auto; } 
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="customModal" class="modal-overlay hidden">
+        <div class="custom-alert-box">
+            <div id="modalTitle" class="modal-title-red">ALERT</div>
+            <div id="modalText" class="modal-body-text">Are you sure?</div>
+            <button id="alertBtn" class="got-it-btn hidden" onclick="closeModal()">GOT IT</button>
+            <div id="confirmGroup" class="confirm-btn-group hidden">
+                <button id="confirmYes" class="btn-confirm-yes">YES</button>
+                <button id="confirmNo" class="btn-confirm-no" onclick="closeModal()">NO</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <div class="bg-white heavy-box-shadow">
+            <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black">
+                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Equipment Management System</h1>
+            </div>
+            <form id="entryForm" class="p-3" novalidate autocomplete="off">
+                <input type="hidden" id="editRowId" value="">
+                <div class="border-[1px] border-black bg-white">
+                    <div class="input-row"><div class="label-cell italic">Borrower:</div><input type="text" id="fullName" class="input-cell" placeholder="Enter Borrower's Name"></div>
+                    <div class="input-row"><div class="label-cell italic">Department:</div><input type="text" id="dept" class="input-cell" placeholder="Enter Department"></div>
+                    <div class="input-row"><div class="label-cell italic">Item Type:</div><input type="text" id="itemType" class="input-cell" placeholder="Enter Equipment Items"></div>
+                    <div class="input-row border-b-0"><div class="label-cell italic">Description:</div><input type="text" id="description" class="input-cell" placeholder="Serial/Specs"></div>
+                </div>
+                <div class="flex justify-end pt-3 gap-2">
+                    <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden bg-gray-400 text-black font-black py-1.5 px-4 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs">Cancel</button>
+                    <button type="submit" id="submitBtn" class="bg-[#00FF00] hover:bg-[#00e600] text-black font-black py-1.5 px-8 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-all uppercase text-xs">Save Entry</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white heavy-box-shadow">
+            <div class="section-header  bg-[#0492c2]">Current Borrowed Items</div>
+            <div class="scroll-box">
+                <table class="thin-table">
+                    <thead>
+                        <tr>
+                            <th class="w-num">#</th>
+                            <th class="w-date">Borrowed</th>
+                            <th class="w-name">Name</th>
+                            <th class="w-dept">Department</th>
+                            <th class="w-item">Item</th>
+                            <th class="w-desc">Description</th>
+                            <th class="w-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activeBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white heavy-box-shadow">
+            <div class="section-header bg-[#702670]">Returned Items History</div>
+            <div class="scroll-box">
+                <table class="thin-table">
+                    <thead>
+                        <tr>
+                            <th class="w-num">#</th>
+                            <th class="w-date">Borrowed</th>
+                            <th class="w-date">Returned</th>
+                            <th class="w-name">Name</th>
+                            <th class="w-dept">Department</th>
+                            <th class="w-item">Item</th>
+                            <th class="w-desc">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returnedBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const entryForm = document.getElementById('entryForm');
+        const activeBody = document.getElementById('activeBody');
+        const returnedBody = document.getElementById('returnedBody');
+        const editRowId = document.getElementById('editRowId');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        let activeData = [];
+        let returnedData = [];
+        let pendingAction = null;
+
+        function openModal(title, text, isConfirm = false, onConfirm = null) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = text;
+            document.getElementById('customModal').classList.remove('hidden');
+            if (isConfirm) {
+                document.getElementById('alertBtn').classList.add('hidden');
+                document.getElementById('confirmGroup').classList.remove('hidden');
+                pendingAction = onConfirm;
+            } else {
+                document.getElementById('alertBtn').classList.remove('hidden');
+                document.getElementById('confirmGroup').classList.add('hidden');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+            pendingAction = null;
+        }
+
+        document.getElementById('confirmYes').onclick = () => { if (pendingAction) pendingAction(); closeModal(); };
+
+        function getNowString() {
+            const now = new Date();
+            return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+        }
+
+        entryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('fullName').value.trim();
+            const dept = document.getElementById('dept').value.trim();
+            const item = document.getElementById('itemType').value.trim();
+            const desc = document.getElementById('description').value.trim();
+
+            if (!name || !dept || !item || !desc) {
+                openModal('MISSING INFO', 'Please fill out all fields.');
+                return;
+            }
+
+            if (editRowId.value) {
+                const index = activeData.findIndex(d => d.rowId == editRowId.value);
+                if (index > -1) {
+                    activeData[index].name = name;
+                    activeData[index].dept = dept;
+                    activeData[index].item = item;
+                    activeData[index].desc = desc;
+                }
+                resetForm();
+            } else {
+                activeData.unshift({ dateBorrowed: getNowString(), name, dept, item, desc, rowId: Date.now() });
+                entryForm.reset();
+            }
+            renderTables();
+        });
+
+        function editItem(id) {
+            const item = activeData.find(d => d.rowId == id);
+            if (item) {
+                document.getElementById('fullName').value = item.name;
+                document.getElementById('dept').value = item.dept;
+                document.getElementById('itemType').value = item.item;
+                document.getElementById('description').value = item.desc;
+                editRowId.value = id;
+                submitBtn.innerText = "Update Entry";
+                cancelBtn.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function deleteItem(id) {
+            openModal('DELETE', 'Are you sure you want to delete this entry?', true, () => {
+                activeData = activeData.filter(d => d.rowId != id);
+                renderTables();
+                if (editRowId.value == id) resetForm();
+            });
+        }
+
+        function resetForm() {
+            entryForm.reset();
+            editRowId.value = '';
+            submitBtn.innerText = "Save Entry";
+            cancelBtn.classList.add('hidden');
+        }
+
+        function markAsReturned(id) {
+            openModal('RETURN', 'Mark this item as returned?', true, () => {
+                const index = activeData.findIndex(d => d.rowId == id);
+                if (index > -1) {
+                    const item = activeData.splice(index, 1)[0];
+                    item.dateReturned = getNowString();
+                    returnedData.unshift(item);
+                    renderTables();
+                    if (editRowId.value == id) resetForm();
+                }
+            });
+        }
+
+        function renderTables() {
+            activeBody.innerHTML = '';
+            activeData.forEach((data, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="num-cell">${index + 1}</td>
+                    <td class="text-center">${data.dateBorrowed}</td>
+                    <td class="uppercase font-bold">${data.name}</td>
+                    <td class="text-center uppercase">${data.dept}</td>
+                    <td class="text-center uppercase">${data.item}</td>
+                    <td class="uppercase">${data.desc}</td>
+                    <td class="text-center">
+                        <button onclick="markAsReturned(${data.rowId})" class="btn-action btn-return">Return</button>
+                        <button onclick="editItem(${data.rowId})" class="btn-action btn-edit">Edit</button>
+                        <button onclick="deleteItem(${data.rowId})" class="btn-action btn-del">X</button>
+                    </td>`;
+                activeBody.appendChild(tr);
+            });
+
+            returnedBody.innerHTML = '';
+            returnedData.forEach((data, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="num-cell">${index + 1}</td>
+                    <td class="text-center">${data.dateBorrowed}</td>
+                    <td class="text-center text-green-700 font-bold">${data.dateReturned}</td>
+                    <td class="uppercase font-bold">${data.name}</td>
+                    <td class="text-center uppercase">${data.dept}</td>
+                    <td class="text-center uppercase">${data.item}</td>
+                    <td class="uppercase">${data.desc}</td>`;
+                returnedBody.appendChild(tr);
+            });
+
+            fillEmptyRows(activeBody, 5, 7);
+            fillEmptyRows(returnedBody, 5, 7);
+        }
+
+        function fillEmptyRows(target, count, colSpan) {
+            const currentRows = target.children.length;
+            for (let i = currentRows; i < count; i++) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="num-cell">${i + 1}</td><td colspan="${colSpan - 1}">&nbsp;</td>`;
+                target.appendChild(tr);
+            }
+        }
+
+        renderTables();
+    </script>
+</body>
+</html>
