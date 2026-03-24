@@ -4,106 +4,132 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CBSUA Borrowing Form Portal</title>
-	<link rel="icon" type="image/png" href="favicon.png">
+    
+    <link rel="icon" type="image/png" href="asset/favicon.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { margin: 0; padding: 0; min-height: 100vh; background-color: #008631; font-family: 'Inter', sans-serif; }
         
-        /* Input Styles */
-        .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; width: 100%; }
-        .label-cell { width: 20%; background-color: #f8fafc; padding: 8px 12px; font-weight: 800; border-right: 1px solid #000; display: flex; align-items: center; font-size: 0.8rem; text-transform: uppercase; color: #1e293b; font-style: italic; }
-        .input-cell { width: 80%; padding: 8px; outline: none; background-color: #ffffff; text-align: left; font-size: 0.9rem; color: #000; border: none; font-weight: 500; }
+        .main-container { max-width: 98%; margin: 0 auto; padding-top: 10px; }
+
+        .uniform-box { 
+            background: white; 
+            border: 2px solid black; 
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); 
+            margin-bottom: 12px;
+            height: 280px; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fixed Scroll Area for Tables - Adjusted for exactly 5 rows */
+        .uniform-box-table {
+            height: 300px; 
+        }
+
+        .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; flex: 1; }
+        .label-cell { 
+            width: 15%; background-color: #f1f5f9; padding: 6px 14px; font-weight: 800; 
+            border-right: 1px solid #000; display: flex; align-items: center; 
+            font-size: 0.8rem; text-transform: uppercase; font-style: italic; 
+        }
+        .input-cell { 
+            width: 85%; padding: 6px 14px; outline: none; background-color: #ffffff; 
+            font-size: 1rem; color: #000; border: none; font-weight: 600; 
+        }
         
-        /* Table Styles */
-        .thin-table { border-collapse: collapse; width: 100%; border: 1px solid #000; table-layout: fixed; }
-        .thin-table thead th { position: sticky; top: 0; z-index: 20; background-color: #f1f5f9; border: 1px solid #000; padding: 10px 4px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; box-shadow: inset 0 -1px 0 #000; text-align: center; }
-        .thin-table td { border: 1px solid #000; padding: 4px 8px; font-size: 0.8rem; font-weight: 600; height: 40px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
+        .thin-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        .thin-table thead th { 
+            position: sticky; top: 0; z-index: 20; background-color: #f1f5f9; 
+            border: 1px solid #000; padding: 10px 4px; font-weight: 800; 
+            font-size: 0.75rem; text-transform: uppercase; box-shadow: inset 0 -1px 0 #000; 
+        }
+        .thin-table td { 
+            border: 1px solid #000; padding: 6px 10px; font-size: 0.85rem; 
+            font-weight: 600; height: 38px; color: #0f172a; overflow: hidden; 
+            text-overflow: ellipsis; white-space: nowrap; 
+        }
         
-        /* UI Components */
-        .heavy-box-shadow { border: 2px solid black; box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); }
-        .scroll-box { background: white; border-top: 1px solid #000; height: 250px; overflow-y: scroll; width: 100%; }
-        .section-header { background-color: #0d5a6a; color: white; font-weight: 800; text-transform: uppercase; font-size: 0.8rem; padding: 10px 14px; border-bottom: 2px solid black; }
+        .w-num { width: 45px; } 
+        .w-date { width: 185px; } 
+        .w-name { width: 250px; } 
+        .w-dept { width: 180px; } 
+        .w-item { width: 180px; } 
+        .w-desc { width: auto; } 
+        .w-actions-sync { width: 185px; } 
+
+        .scroll-area { flex: 1; overflow-y: auto; width: 100%; background: white; }
+        .section-header { 
+            background-color: #0d5a6a; color: white; font-weight: 800; 
+            text-transform: uppercase; font-size: 0.85rem; padding: 10px 16px; 
+            border-bottom: 2px solid black; 
+        }
         
-        /* Buttons */
-        .btn-action { font-weight: 800; font-size: 9px; padding: 4px 5px; border: 1px solid #000; text-transform: uppercase; border-radius: 2px; display: inline-block; cursor: pointer; margin: 0 2px;}
+        .btn-action { font-weight: 800; font-size: 9px; padding: 3px 7px; border: 1px solid #000; text-transform: uppercase; border-radius: 2px; cursor: pointer; margin: 0 2px; }
         .btn-return { background-color: #22c55e; color: white; }
-        .btn-del { background-color: #ef4444; color: white; }
+        .btn-edit { background-color: #3b82f6; color: white; }
+        .btn-del { background-color: #ef4444; color: white; padding: 3px 10px; font-size: 10px; }
+        
+        .action-cell { white-space: nowrap !important; text-align: center; }
         .num-cell { text-align: center; background-color: #f8fafc; font-weight: 800; color: #64748b; }
         
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .custom-alert-box { background-color: #fff; width: 380px; padding: 32px 24px; border: 4px solid black; position: relative; box-shadow: 14px 14px 0px 0px rgba(0,0,0,1); text-align: center; }
-        .hidden { display: none !important; }
-        
-        /* Column Widths */
-        .w-num { width: 45px; } .w-date { width: 160px; } .w-name { width: 180px; } .w-dept { width: 140px; } .w-item { width: 140px; } .w-actions { width: 100px; } .w-desc { width: auto; } 
+        #syncIndicator { font-size: 12px; font-weight: 800; color: #3b82f6; letter-spacing: 1px; animation: blink 1.2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* GLOWING PULSE CIRCLE */
-        .sync-pulse {
-            width: 12px;
-            height: 12px;
-            background-color: #3b82f6;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .custom-alert-box { background-color: #fff; width: 350px; padding: 24px; border: 4px solid black; box-shadow: 10px 10px 0px 0px rgba(0,0,0,1); text-align: center; }
+        .hidden { display: none !important; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-2">
 
     <div id="customModal" class="modal-overlay hidden">
         <div class="custom-alert-box">
-            <div id="modalTitle" class="text-2xl font-black text-red-700 uppercase mb-2">ALERT</div>
-            <div id="modalText" class="text-lg font-bold mb-6">Message goes here.</div>
-            <button id="alertBtn" class="bg-black text-white w-full py-3 font-black uppercase hidden" onclick="closeModal()">GOT IT</button>
-            <div id="confirmGroup" class="flex gap-4 hidden">
-                <button id="confirmYes" class="bg-green-500 text-white border-2 border-black flex-1 py-2 font-black uppercase">YES</button>
-                <button id="confirmNo" class="bg-red-500 text-white border-2 border-black flex-1 py-2 font-black uppercase" onclick="closeModal()">NO</button>
+            <div id="modalTitle" class="text-xl font-black text-red-700 uppercase mb-2">ALERT</div>
+            <div id="modalText" class="text-md font-bold mb-6">Message goes here.</div>
+            <button id="alertBtn" class="bg-black text-white w-full py-2 font-black uppercase hidden" onclick="closeModal()">GOT IT</button>
+            <div id="confirmGroup" class="flex gap-3 hidden">
+                <button id="confirmYes" class="bg-green-500 text-white border-2 border-black flex-1 py-2 font-black uppercase text-sm">YES</button>
+                <button id="confirmNo" class="bg-red-500 text-white border-2 border-black flex-1 py-2 font-black uppercase text-sm" onclick="closeModal()">NO</button>
             </div>
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto space-y-4">
-        <div class="bg-white heavy-box-shadow relative">
-            <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black flex justify-center items-center relative">
-                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Borrowing Form Portal</h1>
-                <div id="syncIndicator" class="absolute right-4 hidden" title="Syncing with Google...">
-                    <div class="sync-pulse"></div>
-                </div>
+    <div class="main-container">
+        <div class="uniform-box">
+            <div class="bg-[#febe00] p-3 text-center border-b-[2px] border-black flex justify-center items-center relative">
+                <h1 class="text-md font-black italic tracking-widest text-black uppercase">Equipment Entry Form</h1>
+                <div id="syncIndicator" class="absolute right-6 hidden">SYNCING...</div>
             </div>
-            <form id="entryForm" class="p-3" novalidate autocomplete="off">
-                <div class="border-[1px] border-black bg-white">
-                    <div class="input-row"><div class="label-cell">Borrower:</div><input type="text" id="fullName" class="input-cell" placeholder="Enter Borrower's Name"></div>
+            <form id="entryForm" class="flex flex-col flex-1" novalidate autocomplete="off">
+                <input type="hidden" id="editingId" value="">
+                <div class="flex-1 flex flex-col">
+                    <div class="input-row"><div class="label-cell">Borrower:</div><input type="text" id="fullName" class="input-cell" placeholder="Enter Full Name"></div>
                     <div class="input-row"><div class="label-cell">Department:</div><input type="text" id="dept" class="input-cell" placeholder="Enter Department"></div>
-                    <div class="input-row"><div class="label-cell">Item Type:</div><input type="text" id="itemType" class="input-cell" placeholder="Enter Equipment Items"></div>
-                    <div class="input-row border-b-0"><div class="label-cell">Description:</div><input type="text" id="description" class="input-cell" placeholder="Serial/Specs"></div>
+                    <div class="input-row"><div class="label-cell">Item:</div><input type="text" id="itemType" class="input-cell" placeholder="Equipment Name"></div>
+                    <div class="input-row border-b-0"><div class="label-cell">Specs:</div><input type="text" id="description" class="input-cell" placeholder="Specifications / Serial Number"></div>
                 </div>
-                <div class="flex justify-end pt-3 gap-2">
-                    <button type="submit" id="submitBtn" class="bg-[#00FF00] text-black font-black py-1.5 px-8 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs">Save Entry</button>
+                <div class="p-3 border-t border-black bg-gray-50 flex justify-end">
+                    <button type="submit" id="submitBtn" class="bg-[#00FF00] text-black font-black py-2 px-14 border-2 border-black rounded shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] uppercase text-xs hover:bg-[#00e600]">Save Entry</button>
                 </div>
             </form>
         </div>
 
-        <div class="bg-white heavy-box-shadow">
+        <div class="uniform-box uniform-box-table">
             <div class="section-header bg-[#0492c2]">Current Borrowed Items</div>
-            <div class="scroll-box">
+            <div class="scroll-area">
                 <table class="thin-table">
                     <thead>
                         <tr>
                             <th class="w-num">#</th>
                             <th class="w-date">Borrowed</th>
                             <th class="w-name">Name</th>
-                            <th class="w-dept">Dept</th>
+                            <th class="w-dept">Department</th>
                             <th class="w-item">Item</th>
                             <th class="w-desc">Description</th>
-                            <th class="w-actions">Actions</th>
+                            <th class="w-actions-sync">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="activeBody"></tbody>
@@ -111,19 +137,19 @@
             </div>
         </div>
 
-        <div class="bg-white heavy-box-shadow">
+        <div class="uniform-box uniform-box-table">
             <div class="section-header bg-[#702670]">Returned Items History</div>
-            <div class="scroll-box">
+            <div class="scroll-area">
                 <table class="thin-table">
                     <thead>
                         <tr>
                             <th class="w-num">#</th>
                             <th class="w-date">Borrowed</th>
-                            <th class="w-date">Returned</th>
                             <th class="w-name">Name</th>
-                            <th class="w-dept">Dept</th>
+                            <th class="w-dept">Department</th>
                             <th class="w-item">Item</th>
                             <th class="w-desc">Description</th>
+                            <th class="w-actions-sync">Returned</th>
                         </tr>
                     </thead>
                     <tbody id="returnedBody"></tbody>
@@ -134,7 +160,6 @@
 
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwScVIALuBjteMuvEnmax6-jeIzEfzSj508BpH03LLaLnd_YyCUn3nLPEsat8qQeS6IBg/exec";
-
         let activeData = [];
         let returnedData = [];
         let pendingAction = null;
@@ -144,10 +169,7 @@
         const returnedBody = document.getElementById('returnedBody');
         const syncIndicator = document.getElementById('syncIndicator');
 
-        function setSyncing(show) {
-            syncIndicator.classList.toggle('hidden', !show);
-        }
-
+        function setSyncing(show) { syncIndicator.classList.toggle('hidden', !show); }
         function getNowString() {
             const now = new Date();
             return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
@@ -155,6 +177,7 @@
 
         entryForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            const editingId = document.getElementById('editingId').value;
             const name = document.getElementById('fullName').value.trim();
             const dept = document.getElementById('dept').value.trim();
             const item = document.getElementById('itemType').value.trim();
@@ -165,25 +188,55 @@
                 return;
             }
 
-            const newEntry = { 
-                action: "ADD", 
-                dateBorrowed: getNowString(), 
-                name, dept, item, desc, 
-                rowId: Date.now() 
-            };
-
-            activeData.unshift(newEntry);
+            if (editingId) {
+                const index = activeData.findIndex(d => d.rowId == editingId);
+                if (index > -1) {
+                    activeData[index] = { ...activeData[index], name, dept, item, desc, action: "EDIT" };
+                    syncToGoogle(activeData[index]);
+                }
+                document.getElementById('editingId').value = "";
+                document.getElementById('submitBtn').innerText = "Save Entry";
+            } else {
+                const newEntry = { action: "ADD", dateBorrowed: getNowString(), name, dept, item, desc, rowId: Date.now() };
+                activeData.unshift(newEntry);
+                syncToGoogle(newEntry);
+            }
             renderTables();
             entryForm.reset();
-
-            setSyncing(true);
-            try {
-                await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(newEntry) });
-            } finally { setSyncing(false); }
         });
 
+        async function syncToGoogle(payload) {
+            setSyncing(true);
+            try { await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) }); } finally { setSyncing(false); }
+        }
+
+        function editEntry(id) {
+            const item = activeData.find(d => d.rowId == id);
+            if (item) {
+                document.getElementById('fullName').value = item.name;
+                document.getElementById('dept').value = item.dept;
+                document.getElementById('itemType').value = item.item;
+                document.getElementById('description').value = item.desc;
+                document.getElementById('editingId').value = id;
+                document.getElementById('submitBtn').innerText = "Update Entry";
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function deleteEntry(id) {
+            openModal('DELETE', 'Remove this record?', true, async () => {
+                const index = activeData.findIndex(d => d.rowId == id);
+                if (index > -1) {
+                    const item = activeData.splice(index, 1)[0];
+                    item.action = "DELETE";
+                    renderTables();
+                    syncToGoogle(item);
+                }
+            });
+        }
+
         async function markAsReturned(id) {
-            openModal('RETURN', 'Mark this item as returned?', true, async () => {
+            openModal('RETURN', 'Mark as returned?', true, async () => {
                 const index = activeData.findIndex(d => d.rowId == id);
                 if (index > -1) {
                     const item = activeData.splice(index, 1)[0];
@@ -191,11 +244,7 @@
                     item.action = "RETURN";
                     returnedData.unshift(item);
                     renderTables();
-
-                    setSyncing(true);
-                    try {
-                        await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(item) });
-                    } finally { setSyncing(false); }
+                    syncToGoogle(item);
                 }
             });
         }
@@ -210,8 +259,10 @@
                     <td class="text-center uppercase">${data.dept}</td>
                     <td class="text-center uppercase">${data.item}</td>
                     <td class="uppercase">${data.desc}</td>
-                    <td class="text-center">
+                    <td class="action-cell">
+                        <button onclick="editEntry(${data.rowId})" class="btn-action btn-edit">Edit</button>
                         <button onclick="markAsReturned(${data.rowId})" class="btn-action btn-return">Return</button>
+                        <button onclick="deleteEntry(${data.rowId})" class="btn-action btn-del">X</button>
                     </td>
                 </tr>`;
             });
@@ -221,14 +272,15 @@
                 returnedBody.innerHTML += `<tr>
                     <td class="num-cell">${index+1}</td>
                     <td class="text-xs text-center">${data.dateBorrowed}</td>
-                    <td class="text-xs text-center text-green-700 font-bold">${data.dateReturned}</td>
                     <td class="uppercase font-bold">${data.name}</td>
                     <td class="text-center uppercase">${data.dept}</td>
                     <td class="text-center uppercase">${data.item}</td>
                     <td class="uppercase">${data.desc}</td>
+                    <td class="text-xs text-center text-green-700 font-bold">${data.dateReturned}</td>
                 </tr>`;
             });
-            fillEmptyRows(activeBody, 5, 7);
+            // Changed from 3 to 5 rows fixed
+            fillEmptyRows(activeBody, 5, 7); 
             fillEmptyRows(returnedBody, 5, 7);
         }
 
@@ -246,9 +298,10 @@
                 const rows = await response.json();
                 activeData = []; returnedData = [];
                 rows.forEach(row => {
+                    if (!row[2] || row[2] === "Name") return;
                     const obj = { dateBorrowed: row[0], dateReturned: row[1], name: row[2], dept: row[3], item: row[4], desc: row[5], rowId: row[6] };
                     if (obj.dateReturned) returnedData.push(obj);
-                    else if (obj.name) activeData.push(obj);
+                    else activeData.push(obj);
                 });
                 renderTables();
             } catch (e) { console.error("Sync failed:", e); }
