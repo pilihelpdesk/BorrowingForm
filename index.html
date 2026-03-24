@@ -45,7 +45,7 @@
     <div class="max-w-7xl mx-auto space-y-8">
         <div class="bg-white heavy-box-shadow">
             <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black">
-                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Equipment Management System</h1>
+                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Borrowing Form Portal</h1>
             </div>
             <form id="entryForm" class="p-3" novalidate autocomplete="off">
                 <input type="hidden" id="editRowId" value="">
@@ -105,7 +105,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-ldrmDj7gF3FyRhfXDJ2jTDTAMIaAEvJifkxnr2DCulSxFTSrHSj90MffWFlgowNNUw/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyB5IX2vPc3qD51Bs7OpiCdHHgF2qAAoNhj-DBs4BiHfKVjW0ZrmKGx_V_ZxRwNOc_2hw/exec";
 
         const entryForm = document.getElementById('entryForm');
         const activeBody = document.getElementById('activeBody');
@@ -282,8 +282,43 @@
             cancelBtn.classList.add('hidden');
         }
 
+        // --- FETCH FROM GOOGLE ---
+        async function loadFromGoogle() {
+            if (GOOGLE_SCRIPT_URL.includes("PASTE_YOUR")) return; 
+            
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const rows = await response.json();
+                
+                activeData = [];
+                returnedData = [];
+
+                rows.forEach(row => {
+                    const obj = { 
+                        dateBorrowed: row[0], 
+                        dateReturned: row[1], 
+                        name: row[2], 
+                        dept: row[3], 
+                        item: row[4], 
+                        desc: row[5], 
+                        rowId: row[6] 
+                    };
+                    
+                    if (obj.dateReturned && obj.dateReturned !== "") {
+                        returnedData.push(obj);
+                    } else if (obj.name) { // Ensure row isn't empty
+                        activeData.push(obj);
+                    }
+                });
+                
+                renderTables();
+            } catch (e) { 
+                console.error("Data sync failed:", e); 
+            }
+        }
+
         // Initial setup
-        renderTables();
+        loadFromGoogle();
     </script>
 </body>
 </html>
