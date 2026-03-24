@@ -3,32 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equipment Borrowing Portal</title>
+    <title>CBSUA Borrowing Form Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { margin: 0; padding: 0; min-height: 100vh; background-color: #008631; font-family: 'Inter', sans-serif; }
+        
+        /* Input Styles */
         .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; width: 100%; }
         .label-cell { width: 20%; background-color: #f8fafc; padding: 8px 12px; font-weight: 800; border-right: 1px solid #000; display: flex; align-items: center; font-size: 0.8rem; text-transform: uppercase; color: #1e293b; font-style: italic; }
         .input-cell { width: 80%; padding: 8px; outline: none; background-color: #ffffff; text-align: left; font-size: 0.9rem; color: #000; border: none; font-weight: 500; }
+        
+        /* Table Styles */
         .thin-table { border-collapse: collapse; width: 100%; border: 1px solid #000; table-layout: fixed; }
         .thin-table thead th { position: sticky; top: 0; z-index: 20; background-color: #f1f5f9; border: 1px solid #000; padding: 10px 4px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; box-shadow: inset 0 -1px 0 #000; text-align: center; }
         .thin-table td { border: 1px solid #000; padding: 4px 8px; font-size: 0.8rem; font-weight: 600; height: 40px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
+        
+        /* UI Components */
         .heavy-box-shadow { border: 2px solid black; box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); }
         .scroll-box { background: white; border-top: 1px solid #000; height: 250px; overflow-y: scroll; width: 100%; }
         .section-header { background-color: #0d5a6a; color: white; font-weight: 800; text-transform: uppercase; font-size: 0.8rem; padding: 10px 14px; border-bottom: 2px solid black; }
+        
+        /* Buttons */
         .btn-action { font-weight: 800; font-size: 9px; padding: 4px 5px; border: 1px solid #000; text-transform: uppercase; border-radius: 2px; display: inline-block; cursor: pointer; margin: 0 2px;}
         .btn-return { background-color: #22c55e; color: white; }
-        .btn-edit { background-color: #3b82f6; color: white; }
         .btn-del { background-color: #ef4444; color: white; }
         .num-cell { text-align: center; background-color: #f8fafc; font-weight: 800; color: #64748b; }
+        
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
         .custom-alert-box { background-color: #fff; width: 380px; padding: 32px 24px; border: 4px solid black; position: relative; box-shadow: 14px 14px 0px 0px rgba(0,0,0,1); text-align: center; }
         .hidden { display: none !important; }
-        .w-num { width: 45px; } .w-date { width: 160px; } .w-name { width: 180px; } .w-dept { width: 140px; } .w-item { width: 140px; } .w-actions { width: 160px; } .w-desc { width: auto; } 
+        
+        /* Column Widths */
+        .w-num { width: 45px; } .w-date { width: 160px; } .w-name { width: 180px; } .w-dept { width: 140px; } .w-item { width: 140px; } .w-actions { width: 100px; } .w-desc { width: auto; } 
 
-        /* NEW INLINE SYNC BAR */
-        .sync-bar { background: white; border: 2px solid black; border-bottom: none; text-align: center; padding: 4px; font-weight: 800; color: #3b82f6; letter-spacing: 0.1em; font-size: 0.85rem; }
+        /* GLOWING PULSE CIRCLE */
+        .sync-pulse {
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
     </style>
 </head>
 <body class="p-4">
@@ -46,12 +70,14 @@
     </div>
 
     <div class="max-w-7xl mx-auto space-y-4">
-        <div class="bg-white heavy-box-shadow">
-            <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black">
-                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Equipment Management System</h1>
+        <div class="bg-white heavy-box-shadow relative">
+            <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black flex justify-center items-center relative">
+                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Borrowing Form Portal</h1>
+                <div id="syncIndicator" class="absolute right-4 hidden" title="Syncing with Google...">
+                    <div class="sync-pulse"></div>
+                </div>
             </div>
             <form id="entryForm" class="p-3" novalidate autocomplete="off">
-                <input type="hidden" id="editRowId" value="">
                 <div class="border-[1px] border-black bg-white">
                     <div class="input-row"><div class="label-cell">Borrower:</div><input type="text" id="fullName" class="input-cell" placeholder="Enter Borrower's Name"></div>
                     <div class="input-row"><div class="label-cell">Department:</div><input type="text" id="dept" class="input-cell" placeholder="Enter Department"></div>
@@ -59,13 +85,10 @@
                     <div class="input-row border-b-0"><div class="label-cell">Description:</div><input type="text" id="description" class="input-cell" placeholder="Serial/Specs"></div>
                 </div>
                 <div class="flex justify-end pt-3 gap-2">
-                    <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden bg-gray-400 text-black font-black py-1.5 px-4 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs">Cancel</button>
                     <button type="submit" id="submitBtn" class="bg-[#00FF00] text-black font-black py-1.5 px-8 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase text-xs">Save Entry</button>
                 </div>
             </form>
         </div>
-
-        <div id="syncIndicator" class="sync-bar hidden">SYNCING...</div>
 
         <div class="bg-white heavy-box-shadow">
             <div class="section-header bg-[#0492c2]">Current Borrowed Items</div>
@@ -109,7 +132,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhlY_asBcl0YWslEBDlMLzcDoMQ2_HFG9gdoN4pU1DTAJxYNMDiTRyXp5mkr65Puw6eA/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwScVIALuBjteMuvEnmax6-jeIzEfzSj508BpH03LLaLnd_YyCUn3nLPEsat8qQeS6IBg/exec";
 
         let activeData = [];
         let returnedData = [];
@@ -129,7 +152,6 @@
             return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
         }
 
-        // --- CORE LOGIC ---
         entryForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const name = document.getElementById('fullName').value.trim();
@@ -149,12 +171,10 @@
                 rowId: Date.now() 
             };
 
-            // Update UI immediately
             activeData.unshift(newEntry);
             renderTables();
             entryForm.reset();
 
-            // Sync with Google
             setSyncing(true);
             try {
                 await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(newEntry) });
@@ -223,8 +243,7 @@
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const rows = await response.json();
-                activeData = [];
-                returnedData = [];
+                activeData = []; returnedData = [];
                 rows.forEach(row => {
                     const obj = { dateBorrowed: row[0], dateReturned: row[1], name: row[2], dept: row[3], item: row[4], desc: row[5], rowId: row[6] };
                     if (obj.dateReturned) returnedData.push(obj);
@@ -235,7 +254,6 @@
             finally { setSyncing(false); }
         }
 
-        // --- Modal & Helpers ---
         function openModal(title, text, isConfirm = false, onConfirm = null) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalText').innerText = text;
