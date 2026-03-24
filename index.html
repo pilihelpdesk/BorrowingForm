@@ -26,6 +26,9 @@
         .custom-alert-box { background-color: #fff; width: 380px; padding: 32px 24px; border: 4px solid black; position: relative; box-shadow: 14px 14px 0px 0px rgba(0,0,0,1); text-align: center; }
         .hidden { display: none !important; }
         .w-num { width: 45px; } .w-date { width: 160px; } .w-name { width: 180px; } .w-dept { width: 140px; } .w-item { width: 140px; } .w-actions { width: 160px; } .w-desc { width: auto; } 
+
+        /* NEW INLINE SYNC BAR */
+        .sync-bar { background: white; border: 2px solid black; border-bottom: none; text-align: center; padding: 4px; font-weight: 800; color: #3b82f6; letter-spacing: 0.1em; font-size: 0.85rem; }
     </style>
 </head>
 <body class="p-4">
@@ -42,10 +45,10 @@
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="max-w-7xl mx-auto space-y-4">
         <div class="bg-white heavy-box-shadow">
             <div class="bg-[#febe00] p-2 text-center border-b-[2px] border-black">
-                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Borrowing Form Portal</h1>
+                <h1 class="text-lg font-black italic tracking-widest text-black uppercase">CBSUA Equipment Management System</h1>
             </div>
             <form id="entryForm" class="p-3" novalidate autocomplete="off">
                 <input type="hidden" id="editRowId" value="">
@@ -62,6 +65,8 @@
             </form>
         </div>
 
+        <div id="syncIndicator" class="sync-bar hidden">SYNCING...</div>
+
         <div class="bg-white heavy-box-shadow">
             <div class="section-header bg-[#0492c2]">Current Borrowed Items</div>
             <div class="scroll-box">
@@ -71,7 +76,7 @@
                             <th class="w-num">#</th>
                             <th class="w-date">Borrowed</th>
                             <th class="w-name">Name</th>
-                            <th class="w-dept">Department</th>
+                            <th class="w-dept">Dept</th>
                             <th class="w-item">Item</th>
                             <th class="w-desc">Description</th>
                             <th class="w-actions">Actions</th>
@@ -92,7 +97,7 @@
                             <th class="w-date">Borrowed</th>
                             <th class="w-date">Returned</th>
                             <th class="w-name">Name</th>
-                            <th class="w-dept">Department</th>
+                            <th class="w-dept">Dept</th>
                             <th class="w-item">Item</th>
                             <th class="w-desc">Description</th>
                         </tr>
@@ -104,21 +109,133 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyB5IX2vPc3qD51Bs7OpiCdHHgF2qAAoNhj-DBs4BiHfKVjW0ZrmKGx_V_ZxRwNOc_2hw/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhlY_asBcl0YWslEBDlMLzcDoMQ2_HFG9gdoN4pU1DTAJxYNMDiTRyXp5mkr65Puw6eA/exec";
 
-        const entryForm = document.getElementById('entryForm');
-        const activeBody = document.getElementById('activeBody');
-        const returnedBody = document.getElementById('returnedBody');
-        const editRowId = document.getElementById('editRowId');
-        const submitBtn = document.getElementById('submitBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        
         let activeData = [];
         let returnedData = [];
         let pendingAction = null;
 
-        // Modal Logic
+        const entryForm = document.getElementById('entryForm');
+        const activeBody = document.getElementById('activeBody');
+        const returnedBody = document.getElementById('returnedBody');
+        const syncIndicator = document.getElementById('syncIndicator');
+
+        function setSyncing(show) {
+            syncIndicator.classList.toggle('hidden', !show);
+        }
+
+        function getNowString() {
+            const now = new Date();
+            return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+        }
+
+        // --- CORE LOGIC ---
+        entryForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('fullName').value.trim();
+            const dept = document.getElementById('dept').value.trim();
+            const item = document.getElementById('itemType').value.trim();
+            const desc = document.getElementById('description').value.trim();
+
+            if (!name || !dept || !item || !desc) {
+                openModal('MISSING INFO', 'Please fill out all fields.');
+                return;
+            }
+
+            const newEntry = { 
+                action: "ADD", 
+                dateBorrowed: getNowString(), 
+                name, dept, item, desc, 
+                rowId: Date.now() 
+            };
+
+            // Update UI immediately
+            activeData.unshift(newEntry);
+            renderTables();
+            entryForm.reset();
+
+            // Sync with Google
+            setSyncing(true);
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(newEntry) });
+            } finally { setSyncing(false); }
+        });
+
+        async function markAsReturned(id) {
+            openModal('RETURN', 'Mark this item as returned?', true, async () => {
+                const index = activeData.findIndex(d => d.rowId == id);
+                if (index > -1) {
+                    const item = activeData.splice(index, 1)[0];
+                    item.dateReturned = getNowString();
+                    item.action = "RETURN";
+                    returnedData.unshift(item);
+                    renderTables();
+
+                    setSyncing(true);
+                    try {
+                        await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(item) });
+                    } finally { setSyncing(false); }
+                }
+            });
+        }
+
+        function renderTables() {
+            activeBody.innerHTML = '';
+            activeData.forEach((data, index) => {
+                activeBody.innerHTML += `<tr>
+                    <td class="num-cell">${index+1}</td>
+                    <td class="text-xs text-center">${data.dateBorrowed}</td>
+                    <td class="uppercase font-bold">${data.name}</td>
+                    <td class="text-center uppercase">${data.dept}</td>
+                    <td class="text-center uppercase">${data.item}</td>
+                    <td class="uppercase">${data.desc}</td>
+                    <td class="text-center">
+                        <button onclick="markAsReturned(${data.rowId})" class="btn-action btn-return">Return</button>
+                    </td>
+                </tr>`;
+            });
+
+            returnedBody.innerHTML = '';
+            returnedData.forEach((data, index) => {
+                returnedBody.innerHTML += `<tr>
+                    <td class="num-cell">${index+1}</td>
+                    <td class="text-xs text-center">${data.dateBorrowed}</td>
+                    <td class="text-xs text-center text-green-700 font-bold">${data.dateReturned}</td>
+                    <td class="uppercase font-bold">${data.name}</td>
+                    <td class="text-center uppercase">${data.dept}</td>
+                    <td class="text-center uppercase">${data.item}</td>
+                    <td class="uppercase">${data.desc}</td>
+                </tr>`;
+            });
+            fillEmptyRows(activeBody, 5, 7);
+            fillEmptyRows(returnedBody, 5, 7);
+        }
+
+        function fillEmptyRows(target, count, colSpan) {
+            const currentRows = target.children.length;
+            for (let i = currentRows; i < count; i++) {
+                target.innerHTML += `<tr><td class="num-cell">${i + 1}</td><td colspan="${colSpan - 1}">&nbsp;</td></tr>`;
+            }
+        }
+
+        async function loadFromGoogle() {
+            setSyncing(true);
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const rows = await response.json();
+                activeData = [];
+                returnedData = [];
+                rows.forEach(row => {
+                    const obj = { dateBorrowed: row[0], dateReturned: row[1], name: row[2], dept: row[3], item: row[4], desc: row[5], rowId: row[6] };
+                    if (obj.dateReturned) returnedData.push(obj);
+                    else if (obj.name) activeData.push(obj);
+                });
+                renderTables();
+            } catch (e) { console.error("Sync failed:", e); }
+            finally { setSyncing(false); }
+        }
+
+        // --- Modal & Helpers ---
         function openModal(title, text, isConfirm = false, onConfirm = null) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalText').innerText = text;
@@ -132,192 +249,9 @@
                 document.getElementById('confirmGroup').classList.add('hidden');
             }
         }
-        function closeModal() { document.getElementById('customModal').classList.add('hidden'); pendingAction = null; }
+        function closeModal() { document.getElementById('customModal').classList.add('hidden'); }
         document.getElementById('confirmYes').onclick = () => { if (pendingAction) pendingAction(); closeModal(); };
 
-        function getNowString() {
-            const now = new Date();
-            return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-        }
-
-        // --- CORE LOGIC ---
-        entryForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('fullName').value.trim();
-            const dept = document.getElementById('dept').value.trim();
-            const item = document.getElementById('itemType').value.trim();
-            const desc = document.getElementById('description').value.trim();
-
-            if (!name || !dept || !item || !desc) {
-                openModal('MISSING INFO', 'Please fill out all fields.');
-                return;
-            }
-
-            if (editRowId.value) {
-                // UPDATE EXISTING
-                const index = activeData.findIndex(d => d.rowId == editRowId.value);
-                if (index > -1) {
-                    activeData[index].name = name;
-                    activeData[index].dept = dept;
-                    activeData[index].item = item;
-                    activeData[index].desc = desc;
-                }
-                resetForm();
-            } else {
-                // CREATE NEW
-                const newEntry = { 
-                    action: "ADD",
-                    dateBorrowed: getNowString(), 
-                    name, dept, item, desc, 
-                    rowId: Date.now() 
-                };
-                
-                // Add to table immediately
-                activeData.unshift(newEntry);
-                
-                // Save to Google
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    body: JSON.stringify(newEntry)
-                }).catch(err => console.error("Database Sync Error:", err));
-
-                entryForm.reset();
-            }
-            renderTables();
-        });
-
-        function markAsReturned(id) {
-            openModal('RETURN', 'Mark this item as returned?', true, () => {
-                const index = activeData.findIndex(d => d.rowId == id);
-                if (index > -1) {
-                    const item = activeData.splice(index, 1)[0];
-                    item.dateReturned = getNowString();
-                    item.action = "RETURN";
-                    returnedData.unshift(item);
-                    
-                    // Sync return to Google
-                    fetch(GOOGLE_SCRIPT_URL, {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: JSON.stringify(item)
-                    });
-
-                    renderTables();
-                    if (editRowId.value == id) resetForm();
-                }
-            });
-        }
-
-        function editItem(id) {
-            const item = activeData.find(d => d.rowId == id);
-            if (item) {
-                document.getElementById('fullName').value = item.name;
-                document.getElementById('dept').value = item.dept;
-                document.getElementById('itemType').value = item.item;
-                document.getElementById('description').value = item.desc;
-                editRowId.value = id;
-                submitBtn.innerText = "Update Entry";
-                cancelBtn.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-
-        function deleteItem(id) {
-            openModal('DELETE', 'Remove this record permanently?', true, () => {
-                activeData = activeData.filter(d => d.rowId != id);
-                renderTables();
-                if (editRowId.value == id) resetForm();
-            });
-        }
-
-        function renderTables() {
-            activeBody.innerHTML = '';
-            activeData.forEach((data, index) => {
-                activeBody.innerHTML += `
-                    <tr>
-                        <td class="num-cell">${index + 1}</td>
-                        <td class="text-center">${data.dateBorrowed}</td>
-                        <td class="uppercase font-bold">${data.name}</td>
-                        <td class="text-center uppercase">${data.dept}</td>
-                        <td class="text-center uppercase">${data.item}</td>
-                        <td class="uppercase">${data.desc}</td>
-                        <td class="text-center">
-                            <button onclick="markAsReturned(${data.rowId})" class="btn-action btn-return">Return</button>
-                            <button onclick="editItem(${data.rowId})" class="btn-action btn-edit">Edit</button>
-                            <button onclick="deleteItem(${data.rowId})" class="btn-action btn-del">X</button>
-                        </td>
-                    </tr>`;
-            });
-
-            returnedBody.innerHTML = '';
-            returnedData.forEach((data, index) => {
-                returnedBody.innerHTML += `
-                    <tr>
-                        <td class="num-cell">${index + 1}</td>
-                        <td class="text-center">${data.dateBorrowed}</td>
-                        <td class="text-center text-green-700 font-bold">${data.dateReturned}</td>
-                        <td class="uppercase font-bold">${data.name}</td>
-                        <td class="text-center uppercase">${data.dept}</td>
-                        <td class="text-center uppercase">${data.item}</td>
-                        <td class="uppercase">${data.desc}</td>
-                    </tr>`;
-            });
-
-            fillEmptyRows(activeBody, 5, 7);
-            fillEmptyRows(returnedBody, 5, 7);
-        }
-
-        function fillEmptyRows(target, count, colSpan) {
-            const currentRows = target.children.length;
-            for (let i = currentRows; i < count; i++) {
-                target.innerHTML += `<tr><td class="num-cell">${i + 1}</td><td colspan="${colSpan - 1}">&nbsp;</td></tr>`;
-            }
-        }
-
-        function resetForm() {
-            entryForm.reset();
-            editRowId.value = '';
-            submitBtn.innerText = "Save Entry";
-            cancelBtn.classList.add('hidden');
-        }
-
-        // --- FETCH FROM GOOGLE ---
-        async function loadFromGoogle() {
-            if (GOOGLE_SCRIPT_URL.includes("PASTE_YOUR")) return; 
-            
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                const rows = await response.json();
-                
-                activeData = [];
-                returnedData = [];
-
-                rows.forEach(row => {
-                    const obj = { 
-                        dateBorrowed: row[0], 
-                        dateReturned: row[1], 
-                        name: row[2], 
-                        dept: row[3], 
-                        item: row[4], 
-                        desc: row[5], 
-                        rowId: row[6] 
-                    };
-                    
-                    if (obj.dateReturned && obj.dateReturned !== "") {
-                        returnedData.push(obj);
-                    } else if (obj.name) { // Ensure row isn't empty
-                        activeData.push(obj);
-                    }
-                });
-                
-                renderTables();
-            } catch (e) { 
-                console.error("Data sync failed:", e); 
-            }
-        }
-
-        // Initial setup
         loadFromGoogle();
     </script>
 </body>
