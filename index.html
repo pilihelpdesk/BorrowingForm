@@ -24,12 +24,11 @@
             flex-direction: column;
         }
 
-        /* Fixed Area for Tables */
         .uniform-box-table {
-            height: 300px; /* Locked height for exactly 5 rows + header */
+            height: 300px; 
         }
 
-        /* CUSTOM SCROLLBAR STYLING */
+        /* FIXED CUSTOM SCROLLBAR */
         .scroll-area::-webkit-scrollbar {
             width: 10px;
             background-color: #f1f1f1;
@@ -74,7 +73,6 @@
         .w-desc { width: auto; } 
         .w-actions-sync { width: 185px; } 
 
-        /* Forced scroll to keep bar visible */
         .scroll-area { flex: 1; overflow-y: scroll; width: 100%; background: white; border-top: 1px solid black;}
         .section-header { 
             background-color: #0d5a6a; color: white; font-weight: 800; 
@@ -212,7 +210,7 @@
                 document.getElementById('submitBtn').innerText = "Save Entry";
             } else {
                 const newEntry = { action: "ADD", dateBorrowed: getNowString(), name, dept, item, desc, rowId: Date.now() };
-                activeData.unshift(newEntry);
+                activeData.unshift(newEntry); // Recent entry goes to top
                 syncToGoogle(newEntry);
             }
             renderTables();
@@ -256,7 +254,7 @@
                     const item = activeData.splice(index, 1)[0];
                     item.dateReturned = getNowString();
                     item.action = "RETURN";
-                    returnedData.unshift(item);
+                    returnedData.unshift(item); // Recent return goes to top
                     renderTables();
                     syncToGoogle(item);
                 }
@@ -310,8 +308,12 @@
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const rows = await response.json();
+                
+                // REVERSE the rows so recent data from sheet is processed first
+                const reversedRows = rows.reverse();
+                
                 activeData = []; returnedData = [];
-                rows.forEach(row => {
+                reversedRows.forEach(row => {
                     if (!row[2] || row[2] === "Name") return;
                     const obj = { dateBorrowed: row[0], dateReturned: row[1], name: row[2], dept: row[3], item: row[4], desc: row[5], rowId: row[6] };
                     if (obj.dateReturned) returnedData.push(obj);
