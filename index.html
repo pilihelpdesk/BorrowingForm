@@ -7,10 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { margin: 0; padding: 0; min-height: 100vh; background-color: #008631; font-family: 'Inter', sans-serif; }
-        .main-container { max-width: 98%; margin: 0 auto; padding-top: 10px; }
-        .uniform-box { background: white; border: 2px solid black; box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); margin-bottom: 12px; height: 280px; display: flex; flex-direction: column; }
-        .uniform-box-table { height: 320px; }
+        html, body { height: 100%; }
+        body { margin: 0; padding: 0; overflow: hidden; background: linear-gradient(135deg, #0b3d1f 0%, #145c2c 22%, #2d7a3d 45%, #b8901f 70%, #8a6a12 100%); background-attachment: fixed; font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        .main-container { max-width: 98%; margin: 0 auto; height: calc(100vh - 1rem); display: flex; flex-direction: column; box-sizing: border-box; }
+        .uniform-box { background: white; border: 3px solid #ffffff; box-shadow: 0 0 0 2px rgba(0,0,0,0.7), 4px 4px 0px 0px rgba(0,0,0,1); margin-bottom: 12px; display: flex; flex-direction: column; }
+        .uniform-box:not(.uniform-box-table) { height: 280px; flex: 0 0 auto; }
+        .uniform-box-table { flex: 1 1 0; min-height: 0; }
+        .main-container > .uniform-box:last-child { margin-bottom: 0; }
         .scroll-area::-webkit-scrollbar { width: 10px; background-color: #f1f1f1; border-left: 1px solid black; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: #0d5a6a; border: 1px solid black; }
         .input-row { display: flex; border-bottom: 1px solid #000; align-items: stretch; flex: 1; }
@@ -253,8 +256,18 @@
                 returnedBody.insertAdjacentHTML('beforeend', row);
             });
             
-            fillEmptyRows(activeBody, 5, 7); 
-            fillEmptyRows(returnedBody, 5, 7);
+            fillEmptyRows(activeBody, calcRowsForArea(activeBody), 7);
+            fillEmptyRows(returnedBody, calcRowsForArea(returnedBody), 7);
+        }
+
+        const ROW_HEIGHT_PX = 38; // must match .thin-table td height in CSS
+
+        function calcRowsForArea(tbodyEl) {
+            const scrollArea = tbodyEl.closest('.scroll-area');
+            const thead = scrollArea.querySelector('thead');
+            const theadHeight = thead ? thead.offsetHeight : 0;
+            const available = scrollArea.clientHeight - theadHeight;
+            return Math.max(3, Math.floor(available / ROW_HEIGHT_PX));
         }
 
         function fillEmptyRows(target, count, colSpan) {
@@ -311,7 +324,15 @@
         function closeModal() { document.getElementById('customModal').classList.add('hidden'); pendingAction = null; }
         document.getElementById('confirmYes').onclick = () => { if (pendingAction) pendingAction(); closeModal(); };
 
+        let resizeDebounce = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeDebounce);
+            resizeDebounce = setTimeout(renderTables, 150);
+        });
+
         loadFromGoogle();
+        // Recalculate shortly after in case late-loading styles/fonts shifted row heights
+        setTimeout(renderTables, 300);
     </script>
 </body>
 </html>
